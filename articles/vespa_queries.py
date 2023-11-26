@@ -1,5 +1,6 @@
 import requests
 import json
+import chat_queries
 
 # TODO: find a better way to ensure that uuid is sent with query in integration
 def run_vespa_query(query, vespa_url='http://localhost:8080'):
@@ -23,14 +24,21 @@ def run_vespa_query(query, vespa_url='http://localhost:8080'):
     
 def parse_vespa_query(response):
     if response["root"]["fields"]["totalCount"] > 0:
-        return [{"title": child["fields"]["title"], "url": child["fields"]["url"]} for child in response["root"]["children"]]
+        return [{"title": child["fields"]["title"], "url": child["fields"]["url"], "relevance": child["relevance"]} for child in response["root"]["children"]]
     else:
         return "No articles matched your search."
+
+def transform_string_to_yql(input_string):
+    return f'select * from articles where default contains phrase("{input_string}") or directory contains phrase("{input_string}")'
 
 example_queries = [
     'select * from articles where default contains "dogs"',
     'select * from articles where default contains "Messi"',
-    'select time_created from articles where default contains phrase("React","Typescript") order by time_created'
+    'select * from articles where default contains phrase("Chrome extension with React")',
+    transform_string_to_yql("Dijkstra"),
+    transform_string_to_yql("cs"),
+    transform_string_to_yql("Computer Science"), # TODO: add embedding functionality to return by topic
+    transform_string_to_yql(chat_queries.get_openai_response("I need an article on Dijkstra's algorithm.")),
 ]
 
 for query in example_queries:
