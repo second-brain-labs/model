@@ -39,6 +39,7 @@ def transform_json_input(input_json):
     # Extract values from input JSON
     title = input_json.get('title', '')
     directory = input_json.get('directory', '')
+    uuid = input_json.get('user_uuid', '')
     summary = input_json.get('summary', '')
     article_id = input_json.get('id', '')
     time_created = input_json.get('time_created', '')
@@ -51,17 +52,18 @@ def transform_json_input(input_json):
             "abstract": summary,  # Assuming 'summary' also goes into 'abstract'
             "url": f"http://example.com/articles/{article_id}",  # Example URL, adjust as needed
             "directory": directory,
-            "time_created": time_created
+            "time_created": time_created,
+            "uuid": uuid
         }
     }
 
     return transformed_json
 
 
-def transform_to_vespa():
-    # dummy user 1 for now. TODO: change to be the actual user logged in
-    user1 = get_user(EXTERNAL_SERVER_URL, "Jane Doe", "janedoe@gmail.com")
-    articles = fetch_articles(user1)
+def transform_to_vespa(user):
+    # dummy user for now. TODO: change to be the actual user logged in
+    # user1 = get_user(EXTERNAL_SERVER_URL, "Jane Doe", "janedoe@gmail.com")
+    articles = fetch_articles(user)
 
     # Transform the input JSON
     new_json = [transform_json_input(article) for article in articles]
@@ -69,7 +71,7 @@ def transform_to_vespa():
 
 # for testing
 def write_to_json_file(json_list, filename="data.json"):
-    with open(filename, "w") as f:
+    with open(filename, "a") as f:
         for entry in json_list:
             # Convert the JSON object to a string and write it to the file
             json_string = json.dumps(entry)
@@ -93,20 +95,26 @@ def feed_document_to_vespa(document, document_id, vespa_url='http://localhost:80
     else:
         raise Exception(f"Feeding failed with status code {response.status_code}: {response.text}")
 
+def get_all_users():
+    response = requests.get(f"{EXTERNAL_SERVER_URL}/users/dummy/all/")
+    return response.json()
+
 def update_vespa_db():
     # dummy user 1 for now. TODO: change to be the actual user logged in
-    user1 = get_user(EXTERNAL_SERVER_URL, "Jane Doe", "janedoe@gmail.com")
-    articles = fetch_articles(user1)
-    for article in articles:
-        # Transform the input JSON
-        new_json = transform_json_input(article)
-        # Feed the document to Vespa
-        document_id = f"{article['id']}"
-        response = feed_document_to_vespa(new_json, document_id)
-        print(response)
+    # user1 = get_user(EXTERNAL_SERVER_URL, "Jane Doe", "janedoe@gmail.com")
+    for user in get_all_users():
+        articles = fetch_articles(user)
+        for article in articles:
+            # Transform the input JSON
+            new_json = transform_json_input(article)
+            # Feed the document to Vespa
+            document_id = f"{article['id']}"
+            response = feed_document_to_vespa(new_json, document_id)
+            print(response)
 
 if __name__ == "__main__":
-    json_list = transform_to_vespa()
-    write_to_json_file(json_list)
+    for user in get_all_users():
+        json_list = transform_to_vespa(user)
+        write_to_json_file(json_list)
 
     update_vespa_db()

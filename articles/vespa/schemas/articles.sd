@@ -28,6 +28,10 @@ schema articles {
             indexing: summary | attribute
             attribute: fast-search
         }
+        field uuid type string {
+            indexing: summary | attribute
+            attribute: fast-search
+        }
     }
 
     fieldset default {

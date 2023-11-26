@@ -1,6 +1,7 @@
 import requests
 import json
 
+# TODO: find a better way to ensure that uuid is sent with query in integration
 def run_vespa_query(query, vespa_url='http://localhost:8080'):
     # Constructing the Vespa YQL query URL
     query_url = f"{vespa_url}/search/"
@@ -19,20 +20,21 @@ def run_vespa_query(query, vespa_url='http://localhost:8080'):
         return response.json()
     else:
         raise Exception(f"Query failed with status code {response.status_code}: {response.text}")
+    
+def parse_vespa_query(response):
+    if response["root"]["fields"]["totalCount"] > 0:
+        return [{"title": child["fields"]["title"], "url": child["fields"]["url"]} for child in response["root"]["children"]]
+    else:
+        return "No articles matched your search."
 
-# Example query 1
-query = 'select * from articles where default contains "dogs"'
-response = run_vespa_query(query)
-print(json.dumps(response, indent=2))
+example_queries = [
+    'select * from articles where default contains "dogs"',
+    'select * from articles where default contains "Messi"',
+    'select time_created from articles where default contains phrase("React","Typescript") order by time_created'
+]
 
-print('------------------------------------------')
-# Example query 2
-query = 'select * from articles where default contains "Messi"'
-response = run_vespa_query(query)
-print(json.dumps(response, indent=2))
-
-print('------------------------------------------')
-# Example query 3
-query = 'select time_created from articles where default contains phrase("React","Typescript") order by time_created'
-response = run_vespa_query(query)
-print(json.dumps(response, indent=2))
+for query in example_queries:
+    response = run_vespa_query(query)
+    print(json.dumps(response, indent=2))
+    print(parse_vespa_query(response))
+    print('------------------------------------------')
