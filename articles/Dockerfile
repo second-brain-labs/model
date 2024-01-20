@@ -1,1 +1,0 @@
-FROM --platform=arm64 python:3.10-buster
