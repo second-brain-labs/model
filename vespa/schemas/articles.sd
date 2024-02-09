@@ -1,0 +1,63 @@
+schema articles {
+    document articles {
+        field article_id type string {
+            indexing: summary | attribute
+            attribute {
+                fast-search
+            }
+        }
+        field title type string {
+            indexing: summary | attribute | index
+        }
+        field content type string {
+            indexing: summary | index
+        }
+        field abstract type string {
+            indexing: summary | index
+        }
+        field url type string {
+            indexing: summary | index
+        }
+        field directory type string {
+            indexing: summary
+        }
+    }
+    field embedding type tensor<bfloat16>(x[384]) {
+        indexing: "passage: " . input title ." ". input content | embed e5 | attribute | index
+        attribute {
+            distance-metric: angular
+        }
+        index {
+            hnsw {
+                max-links-per-node: 16
+                neighbors-to-explore-at-insert: 200
+            }
+        }
+    }
+    fieldset default {
+        fields: content, title, abstract
+    }
+    rank-profile semantic {
+        inputs {
+            query(q) tensor<float>(x[384])             
+            query(threshold)  : 0.75            
+        
+        }
+        function cosine() {
+            expression {
+                max(0,cos(distance(field, embedding)))
+            }
+        }
+        first-phase {
+            expression {
+                if(cosine > query(threshold), cosine, -1)
+            }
+            rank-score-drop-limit: 0.1
+        }
+        match-features {
+            cosine
+            distance(field, embedding)
+            query(threshold)
+        }
+    }
+}
