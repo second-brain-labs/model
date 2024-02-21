@@ -21,6 +21,14 @@ schema articles {
         field directory type string {
             indexing: summary
         }
+
+        field tag type string {
+            indexing: summary | attribute
+            attribute {
+                fast-search
+            }
+}
+
     }
     field embedding type tensor<bfloat16>(x[384]) {
         indexing: "passage: " . input title ." ". input content | embed e5 | attribute | index
