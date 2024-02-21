@@ -11,7 +11,7 @@ from vespa.package import (
     Function,
     FirstPhaseRanking,
 )
-from vespa.deployment import VespaCloud
+from pathlib import Path
 
 article_schema = Schema(
     name="articles",
@@ -91,10 +91,4 @@ semantic_ranking = RankProfile(
 article_schema.add_rank_profile(semantic_ranking)
 
 if __name__ == "__main__":
-    vespa_cloud = VespaCloud(
-        tenant="secondbrain",
-        application="secondbrain",
-        key_location="../api-key.secondbrain.pem",
-        application_package=vespa_application_package,
-    )
-    app = vespa_cloud.deploy(disk_folder="vespa")
+    vespa_application_package.to_files(Path("./vespa"))
